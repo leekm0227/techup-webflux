@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+    <style>
+        #enemies {
+            -ms-user-select: none;
+            -moz-user-select: -moz-none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<script>
+    var ids = [];
+    var conn;
+    var name = "";
+
+    function start() {
+        var ws = new WebSocket("ws://" + location.host + "/demo");
+        ws.onopen = () => {
+            console.log("on open");
+        }
+
+        ws.onmessage = (msg) => {
+            var data = JSON.parse(msg.data);
+
+            if (data.name !== undefined) {
+                name = data.name;
+            }
+
+            if (data.enemies !== undefined) {
+                for (var key of ids) {
+                    if (!Object.keys(data.enemies).includes(key)) {
+                        delete ids[key];
+                        $("#enemy_" + key).remove();
+                    }
+                }
+
+                for (var [key, value] of Object.entries(data.enemies)) {
+                    if (!ids.includes(key)) {
+                        ids.push(key);
+                        addEnemy(key, value);
+                    }
+                }
+            }
+
+            if (data.scores !== undefined) {
+                var scores = "";
+
+                for (var [key, value] of Object.entries(data.scores)) {
+                    if (name === key) scores += "<b>"
+                    scores += `${key}: ${value}<br>`;
+                    if (name === key) scores += "</b>"
+                }
+
+                document.getElementById("scores").innerHTML = scores;
+            }
+        }
+
+        ws.onclose = () => {
+            console.log("on close");
+            alert("disconnected");
+            location.reload();
+        }
+
+        conn = ws;
+        document.getElementById("game").style.display = "block";
+        document.getElementById("start").style.display = "none";
+        document.getElementById('target').focus();
+    }
+
+    function addEnemy(key, value) {
+        var style = `position: absolute; top: ${Math.floor(Math.random() * 80) + 10}%; left: ${Math.floor(Math.random() * 90)}%;`
+        $(`<div style="${style}" id="enemy_${key}">${key}</div>`).appendTo("#enemies");
+        var el = $("#enemy_" + key);
+        el.fadeOut(value - new Date().getTime(), () => {
+            el.remove()
+        });
+    }
+
+    function send() {
+        conn.send(document.getElementById('target').value);
+        document.getElementById('target').value = '';
+    }
+
+    function loop() {
+        var min = 500;
+        var max = 2000;
+        var interval = Math.floor(Math.random() * (max - min)) + min;
+        setTimeout(() => {
+            if (ids.length > 0) {
+                var pos = Math.floor(Math.random() * ids.length);
+                console.log(`pos: ${pos}, val: ${ids[pos]}`);
+                document.getElementById('target').value = ids[pos];
+                send();
+            }
+
+            loop();
+        }, interval)
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (location.search.split("test=")[1] !== undefined) {
+            start();
+            loop();
+        }
+    })
+</script>
+<body oncontextmenu="return false">
+<button onclick="start()" id="start">start</button>
+<br>
+<div id="game" style="display: none;">
+    <div>
+        <div style="float: left; margin-left: 30px;position: absolute; width: 80%; height: 90%">
+            <h1>BUGS</h1>
+            <div id="enemies" style="margin-bottom: 20px;"></div>
+        </div>
+        <div style="float: right; margin-right: 30px;">
+            <h1>DEVS</h1>
+            <div id="scores" style="margin-bottom: 20px;"></div>
+        </div>
+    </div>
+    <div style="position: absolute;">
+        <input type="text" id="target" onkeyup="event.which == 13 ? send() : undefined">
+        <button onclick="send()">DEBUG</button>
+    </div>
+</div>
+</body>
