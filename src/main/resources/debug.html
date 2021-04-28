@@ -33,7 +33,7 @@
             if (data.enemies !== undefined) {
                 for (var key of ids) {
                     if (!Object.keys(data.enemies).includes(key)) {
-                        delete ids[key];
+                        ids.splice(ids.indexOf(key), 1);
                         $("#enemy_" + key).remove();
                     }
                 }
@@ -73,7 +73,7 @@
 
     function addEnemy(key, value) {
         var style = `position: absolute; top: ${Math.floor(Math.random() * 80) + 10}%; left: ${Math.floor(Math.random() * 90)}%;`
-        $(`<div style="${style}" id="enemy_${key}">${key}</div>`).appendTo("#enemies");
+        $(`<div style="${style}" class="enemy" id="enemy_${key}">${key}</div>`).appendTo("#enemies");
         var el = $("#enemy_" + key);
         el.fadeOut(value - new Date().getTime(), () => {
             el.remove()
