@@ -2,6 +2,7 @@ package com.example.demo.v2.handler;
 
 import com.example.demo.model.PayloadType;
 import com.example.demo.model.Request;
+import com.example.demo.model.ResultType;
 import com.example.demo.v2.publisher.BroadcastPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,13 +13,13 @@ import java.util.HashMap;
 import java.util.function.Function;
 
 @Component
-public class EventHandler {
+public class EventHandler2 {
 
     private static final HashMap<PayloadType, Function<Request, String>> eventMap = new HashMap<>();
     private static final ObjectMapper mapper = new ObjectMapper();
     private final BroadcastPublisher broadcastPublisher;
 
-    EventHandler(BroadcastPublisher broadcastPublisher) {
+    EventHandler2(BroadcastPublisher broadcastPublisher) {
         this.broadcastPublisher = broadcastPublisher;
     }
 
@@ -33,19 +34,31 @@ public class EventHandler {
 
     private String response(HashMap<String, Object> result) {
         try {
+            result.putIfAbsent("result", ResultType.SUCCESS);
             return mapper.writeValueAsString(result);
         } catch (JsonProcessingException e) {
             return "";
         }
     }
 
-    public String handle(Request request) {
+    private Request parse(String payloadText) {
+        try {
+            return mapper.readValue(payloadText, Request.class);
+        } catch (JsonProcessingException e) {
+            return new Request();
+        }
+    }
+
+    public String handle(String sessionId, String payloadText) {
+        Request request = parse(payloadText);
+        request.setSessionId(sessionId);
         return eventMap.getOrDefault(request.getPayloadType(), this::invalid).apply(request);
     }
 
     private String invalid(Request request) {
-        System.out.println("invalid payload type");
-        return response(null);
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("result", ResultType.ERROR_INVALID_PAYLOAD_TYPE);
+        return response(result);
     }
 
     private String channelList(Request request) {
@@ -56,22 +69,25 @@ public class EventHandler {
 
     private String channelCreate(Request request) {
         HashMap<String, Object> result = new HashMap<>();
-        result.put("channelId", broadcastPublisher.createChannel(request.getPayload().getSessionId()));
+        result.put("channelId", broadcastPublisher.createChannel(request.getSessionId()));
         return response(result);
     }
 
     private String channelJoin(Request request) {
-        broadcastPublisher.joinChannel(request.getPayload().getChannelId(), request.getPayload().getSessionId());
-        return response(null);
+        HashMap<String, Object> result = new HashMap<>();
+        broadcastPublisher.joinChannel(request.getChannelId(), request.getSessionId());
+        return response(result);
     }
 
     private String channelLeave(Request request) {
-        broadcastPublisher.leaveChannel(request.getPayload().getChannelId(), request.getPayload().getSessionId());
-        return response(null);
+        HashMap<String, Object> result = new HashMap<>();
+        broadcastPublisher.leaveChannel(request.getChannelId(), request.getSessionId());
+        return response(result);
     }
 
     private String broadcast(Request request) {
-        broadcastPublisher.next(request.getPayload());
-        return response(null);
+        HashMap<String, Object> result = new HashMap<>();
+        broadcastPublisher.next(request);
+        return response(result);
     }
 }

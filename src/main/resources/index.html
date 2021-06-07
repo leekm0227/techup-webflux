@@ -1,1 +1,33 @@
-demo
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+</head>
+<script>
+    var conn;
+
+    function start() {
+        var ws = new WebSocket("ws://localhost:22222/v1/channel");
+        ws.onopen = () => {
+            console.log("on open");
+        }
+
+        ws.onmessage = (msg) => {
+            var data = JSON.parse(msg.data);
+        }
+
+        ws.onclose = () => {
+            alert("disconnected");
+        }
+
+        conn = ws;
+    }
+
+    function send() {
+        conn.send(document.getElementById('target').value);
+        document.getElementById('target').value = '';
+    }
+</script>
+<body>
+<button onclick="start()">start</button><br>
+</body>

@@ -1,6 +1,5 @@
 package com.example.demo.v2.handler;
 
-import com.example.demo.model.Payload;
 import com.example.demo.model.Request;
 import com.example.demo.v2.publisher.BroadcastPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,33 +14,35 @@ import reactor.core.publisher.Mono;
 public class ChannelWebSocketHandler2 implements WebSocketHandler {
 
     private final ObjectMapper mapper;
-    private final EventHandler eventHandler;
+    private final EventHandler2 eventHandler2;
     private final BroadcastPublisher broadcastPublisher;
 
-    public ChannelWebSocketHandler2(EventHandler eventHandler, BroadcastPublisher broadcastPublisher) {
+    public ChannelWebSocketHandler2(EventHandler2 eventHandler2, BroadcastPublisher broadcastPublisher) {
         this.mapper = new ObjectMapper();
-        this.eventHandler = eventHandler;
+        this.eventHandler2 = eventHandler2;
         this.broadcastPublisher = broadcastPublisher;
     }
 
     /*
         @ broadcast 방법 v2
-        1. broadcastPublisher.map(filter: channelid or sessionid)
+        1. broadcastPublisher.filter(channelid or sessionid)
     */
     @Override
     public Mono<Void> handle(WebSocketSession session) {
         return session.send(Flux.merge(
-                broadcastPublisher.subscribe(session).map(payload -> session.textMessage(payloadToJson(payload))),
-                session.receive().ofType(Request.class)
+                broadcastPublisher.subscribe(session).map(payload -> session.textMessage(requestToJson(payload))),
+                session.receive().log("receive v2")
                         .doFirst(() -> broadcastPublisher.join(session))
                         .doFinally((signal) -> broadcastPublisher.leave(session))
-                        .map(request -> session.textMessage(eventHandler.handle(request)))
+                        .map(webSocketMessage -> eventHandler2.handle(session.getId(), webSocketMessage.getPayloadAsText()))
+                        .filter(s -> !s.isEmpty())
+                        .map(session::textMessage)
         ));
     }
 
-    private String payloadToJson(Payload payload) {
+    private String requestToJson(Request request) {
         try {
-            return mapper.writeValueAsString(payload);
+            return mapper.writeValueAsString(request);
         } catch (JsonProcessingException e) {
             return "";
         }

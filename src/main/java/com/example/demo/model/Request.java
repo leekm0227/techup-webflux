@@ -5,5 +5,9 @@ import lombok.Data;
 @Data
 public class Request {
     private PayloadType payloadType;
-    private Payload payload;
+    private ReceiveType receiveType;
+    private String sessionId;
+    private String channelId;
+    private String receiver;
+    private String body;
 }

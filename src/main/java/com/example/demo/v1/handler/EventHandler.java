@@ -1,9 +1,10 @@
 package com.example.demo.v1.handler;
 
-import com.example.demo.v1.manager.ChannelManager;
-import com.example.demo.v1.manager.SessionManager;
 import com.example.demo.model.PayloadType;
 import com.example.demo.model.Request;
+import com.example.demo.model.ResultType;
+import com.example.demo.v1.manager.ChannelManager;
+import com.example.demo.v1.manager.SessionManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -15,12 +16,14 @@ import java.util.function.Function;
 @Component
 public class EventHandler {
 
-    private static final HashMap<PayloadType, Function<Request, String>> eventMap = new HashMap<>();
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private final HashMap<PayloadType, Function<Request, String>> eventMap;
+    private final ObjectMapper mapper;
     private final ChannelManager channelManager;
     private final SessionManager sessionManager;
 
     EventHandler(ChannelManager channelManager, SessionManager sessionManager) {
+        this.eventMap = new HashMap<>();
+        this.mapper = new ObjectMapper();
         this.channelManager = channelManager;
         this.sessionManager = sessionManager;
     }
@@ -36,19 +39,31 @@ public class EventHandler {
 
     private String response(HashMap<String, Object> result) {
         try {
+            result.putIfAbsent("result", ResultType.SUCCESS);
             return mapper.writeValueAsString(result);
         } catch (JsonProcessingException e) {
             return "";
         }
     }
 
-    public String handle(Request request) {
+    private Request parse(String payloadText) {
+        try {
+            return mapper.readValue(payloadText, Request.class);
+        } catch (JsonProcessingException e) {
+            return new Request();
+        }
+    }
+
+    public String handle(String sessionId, String payloadText) {
+        Request request = parse(payloadText);
+        request.setSessionId(sessionId);
         return eventMap.getOrDefault(request.getPayloadType(), this::invalid).apply(request);
     }
 
     private String invalid(Request request) {
-        System.out.println("invalid payload type");
-        return response(null);
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("result", ResultType.ERROR_INVALID_PAYLOAD_TYPE);
+        return response(result);
     }
 
     private String channelList(Request request) {
@@ -59,22 +74,24 @@ public class EventHandler {
 
     private String channelCreate(Request request) {
         HashMap<String, Object> result = new HashMap<>();
-        result.put("channelId", channelManager.createChannel(request.getPayload().getSessionId()));
+        result.put("channelId", channelManager.createChannel(request.getSessionId()));
         return response(result);
     }
 
     private String channelJoin(Request request) {
-        channelManager.joinChannel(request.getPayload().getChannelId(), request.getPayload().getSessionId());
-        return response(null);
+        HashMap<String, Object> result = new HashMap<>();
+        channelManager.joinChannel(request.getChannelId(), request.getSessionId());
+        return response(result);
     }
 
     private String channelLeave(Request request) {
-        channelManager.leaveChannel(request.getPayload().getChannelId(), request.getPayload().getSessionId());
-        return response(null);
+        HashMap<String, Object> result = new HashMap<>();
+        channelManager.leaveChannel(request.getChannelId(), request.getSessionId());
+        return response(result);
     }
 
     private String broadcast(Request request) {
-        switch (request.getPayload().getReceiveType()) {
+        switch (request.getReceiveType()) {
             case SESSION:
                 sessionManager.broadcast(request);
                 break;
@@ -83,6 +100,6 @@ public class EventHandler {
                 break;
         }
 
-        return response(null);
+        return "";
     }
 }

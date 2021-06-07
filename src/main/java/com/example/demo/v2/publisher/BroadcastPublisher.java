@@ -1,18 +1,15 @@
 package com.example.demo.v2.publisher;
 
-import com.example.demo.model.Payload;
-import com.example.demo.model.PayloadType;
 import com.example.demo.model.ReceiveType;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.demo.model.Request;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import javax.annotation.PostConstruct;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BroadcastPublisher {
     private ConcurrentHashMap<String, WebSocketSession> sessionMap;
     private ConcurrentHashMap<String, List<WebSocketSession>> channelMap;
-    private Sinks.Many<Payload> sink;
+    private Sinks.Many<Request> sink;
 
     @PostConstruct
     void init() {
@@ -39,7 +36,7 @@ public class BroadcastPublisher {
     }
 
     public String createChannel(String sessionId) {
-        String channelId = UUID.randomUUID().toString();
+        String channelId = UUID.randomUUID().toString().replace("-", "");
         List<WebSocketSession> sessions = new ArrayList<>();
         sessions.add(sessionMap.get(sessionId));
         channelMap.put(channelId, sessions);
@@ -58,13 +55,13 @@ public class BroadcastPublisher {
         return new ArrayList<>(channelMap.keySet());
     }
 
-    public void next(Payload payload) {
-        sink.tryEmitNext(payload);
+    public void next(Request request) {
+        sink.tryEmitNext(request);
     }
 
-    public Flux<Payload> subscribe(WebSocketSession session) {
-        return sink.asFlux().filter(payload -> (payload.getReceiveType() == ReceiveType.SESSION && payload.getReceiver().equals(session.getId()))
-                || (payload.getReceiveType() == ReceiveType.CHANNEL && channelMap.get(payload.getReceiver()).contains(session)));
+    public Flux<Request> subscribe(WebSocketSession session) {
+        return sink.asFlux().filter(request -> (request.getReceiveType() == ReceiveType.SESSION && request.getReceiver().equals(session.getId()))
+                || (request.getReceiveType() == ReceiveType.CHANNEL && channelMap.get(request.getReceiver()).contains(session)));
 
     }
 
