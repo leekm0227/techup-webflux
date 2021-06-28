@@ -1,5 +1,6 @@
 package com.example.demo.v1.handler;
 
+import com.example.demo.v1.manager.ChannelManager;
 import com.example.demo.v1.manager.SessionManager;
 import com.example.demo.model.Request;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,11 +17,13 @@ public class ChannelWebSocketHandler implements WebSocketHandler {
     private final ObjectMapper mapper;
     private final EventHandler eventHandler;
     private final SessionManager sessionManager;
+    private final ChannelManager channelManager;
 
-    public ChannelWebSocketHandler(EventHandler eventHandler, SessionManager sessionManager) {
+    public ChannelWebSocketHandler(EventHandler eventHandler, SessionManager sessionManager, ChannelManager channelManager) {
         this.mapper = new ObjectMapper();
         this.eventHandler = eventHandler;
         this.sessionManager = sessionManager;
+        this.channelManager = channelManager;
     }
 
     /*
@@ -32,7 +35,10 @@ public class ChannelWebSocketHandler implements WebSocketHandler {
         Sinks.Many<Request> subscriber = Sinks.many().unicast().onBackpressureError();
         return session.send(subscriber.asFlux().map(request -> session.textMessage(requestToJson(request)))
                 .mergeWith(session.receive().log("receive v1")
-                        .doFirst(() -> sessionManager.add(session.getId(), subscriber))
+                        .doFirst(() -> {
+                            sessionManager.add(session.getId(), subscriber);
+                            channelManager.ready();
+                        })
                         .doFinally((signal) -> sessionManager.remove(session))
                         .map(webSocketMessage -> eventHandler.handle(session.getId(), webSocketMessage.getPayloadAsText()))
                         .filter(s -> !s.isEmpty())

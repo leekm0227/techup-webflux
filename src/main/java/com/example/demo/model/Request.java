@@ -10,4 +10,5 @@ public class Request {
     private String channelId;
     private String receiver;
     private String body;
+    private long txtime;
 }

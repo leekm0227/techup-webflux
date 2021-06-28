@@ -6,4 +6,5 @@ public enum PayloadType {
     CHANNEL_JOIN,
     CHANNEL_LEAVE,
     BROADCAST,
+    START_TEST,
 }

@@ -86,8 +86,7 @@ public class EventHandler2 {
     }
 
     private String broadcast(Request request) {
-        HashMap<String, Object> result = new HashMap<>();
         broadcastPublisher.next(request);
-        return response(result);
+        return "";
     }
 }
