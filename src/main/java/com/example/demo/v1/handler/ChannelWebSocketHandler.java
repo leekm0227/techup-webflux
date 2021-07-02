@@ -29,6 +29,8 @@ public class ChannelWebSocketHandler implements WebSocketHandler {
     /*
         @ broadcast 방법 v1
         sessionManager를 통하여 해당 session에 subscriber 생성, 메시지 전송
+
+        -> channelMap.foreach시 blocking 발생
     */
     @Override
     public Mono<Void> handle(WebSocketSession session) {

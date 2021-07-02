@@ -12,7 +12,6 @@ class ChannelTaskSet(locust.TaskSet):
         super().__init__(parent)
         self.ws = create_connection('ws://localhost:22222/v1/channel')
         self.channel_id = ""
-        self.count = 0
 
     def on_start(self):
         def _receive():
@@ -37,17 +36,16 @@ class ChannelTaskSet(locust.TaskSet):
 
     @locust.task
     def sent(self):
-        if self.channel_id != "" and self.count < 1000:
+        if self.channel_id != "":
             data = {
                 "payloadType": 4,
                 "receiveType": 1,
                 "receiver": self.channel_id,
                 "txtime": time.time(),
-                "body": "test msg " + str(self.count)
+                "body": "test msg"
             }
             body = json.dumps(data)
             self.ws.send(body)
-            self.count += 1
 
 
 class ChatLocust(locust.HttpUser):

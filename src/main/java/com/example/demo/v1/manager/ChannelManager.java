@@ -38,7 +38,7 @@ public class ChannelManager {
     }
 
     public void ready() {
-        if (sessionManager.getList().size() >= 10) {
+        if (sessionManager.getList().size() >= 1000) {
             if (this.sessionList == null) {
                 this.sessionList = sessionManager.getList();
 

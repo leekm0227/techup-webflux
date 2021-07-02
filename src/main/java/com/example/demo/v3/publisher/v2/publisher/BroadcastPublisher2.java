@@ -1,4 +1,4 @@
-package com.example.demo.v2.publisher;
+package com.example.demo.v3.publisher.v2.publisher;
 
 import com.example.demo.model.PayloadType;
 import com.example.demo.model.ReceiveType;
@@ -15,7 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class BroadcastPublisher {
+public class BroadcastPublisher2 {
     private ConcurrentHashMap<String, WebSocketSession> sessionMap;
     private ConcurrentHashMap<String, List<WebSocketSession>> channelMap;
     private Sinks.Many<Request> sink;
