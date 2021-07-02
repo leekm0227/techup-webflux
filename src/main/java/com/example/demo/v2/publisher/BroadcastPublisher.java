@@ -25,15 +25,19 @@ public class BroadcastPublisher {
         this.sessionMap = new ConcurrentHashMap<>();
         this.channelMap = new ConcurrentHashMap<>();
         this.sink = Sinks.many().multicast().onBackpressureBuffer(1);
-        for (int i = 0; i < 50; i++) {
-            channelMap.put("channel" + i, new ArrayList<>());
-        }
     }
 
-    private void ready(WebSocketSession session) {
+    private void test(WebSocketSession session) {
+        int CHANNEL_SIZE = 10;
+
         ArrayList<WebSocketSession> sessionList = new ArrayList<>(sessionMap.values());
         int index = sessionList.indexOf(session);
-        String key = "channel" + Math.floorDiv(index, 20);
+        String key = "channel" + Math.floorDiv(index, CHANNEL_SIZE);
+
+        if (!channelMap.containsKey(key)) {
+            channelMap.put(key, new ArrayList<>());
+        }
+
         channelMap.get(key).add(session);
         Request request = new Request();
         request.setPayloadType(PayloadType.START_TEST);
@@ -45,7 +49,7 @@ public class BroadcastPublisher {
 
     public void join(WebSocketSession session) {
         sessionMap.put(session.getId(), session);
-        ready(session);
+        test(session);
     }
 
     public void leave(WebSocketSession session) {

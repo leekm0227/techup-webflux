@@ -10,7 +10,7 @@ import locust
 class ChannelTaskSet(locust.TaskSet):
     def __init__(self, parent):
         super().__init__(parent)
-        self.ws = create_connection('ws://localhost:22222/v1/channel')
+        self.ws = create_connection('ws://localhost:22222/v2/channel')
         self.channel_id = ""
 
     def on_start(self):
@@ -21,11 +21,11 @@ class ChannelTaskSet(locust.TaskSet):
 
                 if data["payloadType"] == "START_TEST":
                     self.channel_id = data["receiver"]
-                elif data['txtime']:
+                elif data["payloadType"] == "BROADCAST":
                     locust.events.request_success.fire(
                         request_type='recv',
-                        name=data['body'],
-                        response_time=int((time.time() - data['txtime']) * 1000),
+                        name=data["payloadType"],
+                        response_time=round(time.time() * 1000) - int(data['txtime']),
                         response_length=len(res),
                     )
 
@@ -41,8 +41,8 @@ class ChannelTaskSet(locust.TaskSet):
                 "payloadType": 4,
                 "receiveType": 1,
                 "receiver": self.channel_id,
-                "txtime": time.time(),
-                "body": "test msg"
+                "txtime": round(time.time() * 1000),
+                "body": "Welcome to the website. If you're here, you're likely looking to find random words. Random Word Generator is the perfect tool to help you do this. While this tool isn't a word creator, it is a word generator that will generate random words for a variety of activities or uses. Even better, it allows you to adjust the parameters of the random words to best fit your needs."
             }
             body = json.dumps(data)
             self.ws.send(body)
