@@ -1,5 +1,6 @@
-package com.example.demo.v2.publisher;
+package com.example.demo.publisher;
 
+import com.example.demo.manager.PosManager;
 import com.example.demo.model.PayloadType;
 import com.example.demo.model.ReceiveType;
 import com.example.demo.model.Request;
@@ -8,7 +9,6 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.ParallelFlux;
 import reactor.core.publisher.Sinks;
 
-import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -16,19 +16,20 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class BroadcastPublisher {
-    private ConcurrentHashMap<String, WebSocketSession> sessionMap;
-    private ConcurrentHashMap<String, List<WebSocketSession>> channelMap;
-    private Sinks.Many<Request> sink;
+    private final ConcurrentHashMap<String, WebSocketSession> sessionMap;
+    private final ConcurrentHashMap<String, List<WebSocketSession>> channelMap;
+    private final Sinks.Many<Request> sink;
+    private final PosManager posManager;
 
-    @PostConstruct
-    void init() {
+    public BroadcastPublisher(PosManager posManager) {
         this.sessionMap = new ConcurrentHashMap<>();
         this.channelMap = new ConcurrentHashMap<>();
         this.sink = Sinks.many().multicast().onBackpressureBuffer(1);
+        this.posManager = posManager;
     }
 
     private void test(WebSocketSession session) {
-        int CHANNEL_SIZE = 10;
+        int CHANNEL_SIZE = 1;
 
         ArrayList<WebSocketSession> sessionList = new ArrayList<>(sessionMap.values());
         int index = sessionList.indexOf(session);
@@ -43,7 +44,8 @@ public class BroadcastPublisher {
         request.setPayloadType(PayloadType.START_TEST);
         request.setReceiver(key);
         request.setChannelId(key);
-        request.setTxtime(System.currentTimeMillis());
+        request.setRegTime(System.currentTimeMillis());
+        request.setPos(posManager.init(session.getId()));
         this.next(request);
     }
 
@@ -53,6 +55,7 @@ public class BroadcastPublisher {
     }
 
     public void leave(WebSocketSession session) {
+        posManager.leave(session.getId());
         sessionMap.remove(session.getId());
     }
 

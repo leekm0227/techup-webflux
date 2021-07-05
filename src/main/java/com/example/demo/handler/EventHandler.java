@@ -1,35 +1,37 @@
-package com.example.demo.v2.handler;
+package com.example.demo.handler;
 
+import com.example.demo.manager.PosManager;
 import com.example.demo.model.PayloadType;
 import com.example.demo.model.Request;
 import com.example.demo.model.ResultType;
-import com.example.demo.v2.publisher.BroadcastPublisher;
+import com.example.demo.publisher.BroadcastPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.function.Function;
 
 @Component
-public class EventHandler2 {
+public class EventHandler {
 
-    private static final HashMap<PayloadType, Function<Request, String>> eventMap = new HashMap<>();
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private final HashMap<PayloadType, Function<Request, String>> eventMap;
+    private final ObjectMapper mapper;
     private final BroadcastPublisher broadcastPublisher;
+    private final PosManager posManager;
 
-    EventHandler2(BroadcastPublisher broadcastPublisher) {
+    EventHandler(BroadcastPublisher broadcastPublisher, PosManager posManager) {
         this.broadcastPublisher = broadcastPublisher;
-    }
+        this.posManager = posManager;
+        this.mapper = new ObjectMapper();
+        this.eventMap = new HashMap<>();
 
-    @PostConstruct
-    void init() {
         eventMap.put(PayloadType.CHANNEL_LIST, this::channelList);
         eventMap.put(PayloadType.CHANNEL_CREATE, this::channelCreate);
         eventMap.put(PayloadType.CHANNEL_JOIN, this::channelJoin);
         eventMap.put(PayloadType.CHANNEL_LEAVE, this::channelLeave);
         eventMap.put(PayloadType.BROADCAST, this::broadcast);
+        eventMap.put(PayloadType.MOVE, this::move);
     }
 
     private String response(HashMap<String, Object> result) {
@@ -86,6 +88,12 @@ public class EventHandler2 {
     }
 
     private String broadcast(Request request) {
+        broadcastPublisher.next(request);
+        return "";
+    }
+
+    private String move(Request request) {
+        request.setAfterPos(posManager.move(request.getSessionId(), request.getDir()));
         broadcastPublisher.next(request);
         return "";
     }

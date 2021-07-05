@@ -1,7 +1,8 @@
-package com.example.demo.v2.handler;
+package com.example.demo.handler;
 
+import com.example.demo.manager.PosManager;
 import com.example.demo.model.Request;
-import com.example.demo.v2.publisher.BroadcastPublisher;
+import com.example.demo.publisher.BroadcastPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -11,22 +12,18 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Component
-public class ChannelWebSocketHandler2 implements WebSocketHandler {
+public class ChannelWebSocketHandler implements WebSocketHandler {
 
     private final ObjectMapper mapper;
-    private final EventHandler2 eventHandler2;
+    private final EventHandler eventHandler;
     private final BroadcastPublisher broadcastPublisher;
 
-    public ChannelWebSocketHandler2(EventHandler2 eventHandler2, BroadcastPublisher broadcastPublisher) {
+    public ChannelWebSocketHandler(EventHandler eventHandler, BroadcastPublisher broadcastPublisher) {
         this.mapper = new ObjectMapper();
-        this.eventHandler2 = eventHandler2;
+        this.eventHandler = eventHandler;
         this.broadcastPublisher = broadcastPublisher;
     }
 
-    /*
-        @ broadcast 방법 v2
-        1. broadcastPublisher.filter(channelid or sessionid)
-    */
     @Override
     public Mono<Void> handle(WebSocketSession session) {
         return session.send(Flux.merge(
@@ -34,7 +31,7 @@ public class ChannelWebSocketHandler2 implements WebSocketHandler {
                 session.receive().log("receive v2")
                         .doFirst(() -> broadcastPublisher.join(session))
                         .doFinally((signal) -> broadcastPublisher.leave(session))
-                        .map(webSocketMessage -> eventHandler2.handle(session.getId(), webSocketMessage.getPayloadAsText()))
+                        .map(webSocketMessage -> eventHandler.handle(session.getId(), webSocketMessage.getPayloadAsText()))
                         .filter(s -> !s.isEmpty())
                         .map(session::textMessage)
         ));

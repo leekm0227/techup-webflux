@@ -10,5 +10,8 @@ public class Request {
     private String channelId;
     private String receiver;
     private String body;
-    private long txtime;
+    private int[] dir;
+    private int[] pos;
+    private int[] afterPos;
+    private long regTime;
 }

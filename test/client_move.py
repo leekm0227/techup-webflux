@@ -1,4 +1,5 @@
 import json
+import random
 import time
 
 import gevent
@@ -11,6 +12,7 @@ class ChannelTaskSet(locust.TaskSet):
         super().__init__(parent)
         self.ws = create_connection('ws://localhost:22222/channel')
         self.channel_id = ""
+        self.pos = []
 
     def on_start(self):
         def _receive():
@@ -21,7 +23,8 @@ class ChannelTaskSet(locust.TaskSet):
 
                     if data["payloadType"] == "START_TEST":
                         self.channel_id = data["receiver"]
-                    elif data["payloadType"] == "BROADCAST":
+                        self.pos = data["pos"]
+                    elif data["payloadType"] == "MOVE":
                         locust.events.request_success.fire(
                             request_type='recv',
                             name='recv',
@@ -43,14 +46,29 @@ class ChannelTaskSet(locust.TaskSet):
 
     @locust.task
     def send(self):
-        if self.channel_id != "":
+        if self.channel_id != "" and self.pos:
             try:
+                x = 0
+                y = 0
+
+                if random.choice([True, False]):
+                    if random.choice([True, False]):
+                        x = max(x-1, 0)
+                    else:
+                        x = min(x+1, 1000)
+                else:
+                    if random.choice([True, False]):
+                        y = max(x-1, 0)
+                    else:
+                        y = min(x+1, 1000)
+
+                direction = [x, y]
                 data = {
-                    "payloadType": 4,
+                    "payloadType": 6,
                     "receiveType": 1,
                     "receiver": self.channel_id,
                     "regTime": round(time.time() * 1000),
-                    "body": "Welcome to the website. If you're here, you're likely looking to find random words. Random Word Generator is the perfect tool to help you do this. While this tool isn't a word creator, it is a word generator that will generate random words for a variety of activities or uses. Even better, it allows you to adjust the parameters of the random words to best fit your needs."
+                    "dir": direction
                 }
                 body = json.dumps(data)
                 self.ws.send(body)
@@ -71,4 +89,4 @@ class ChannelTaskSet(locust.TaskSet):
 
 class ChatLocust(locust.HttpUser):
     tasks = [ChannelTaskSet]
-    locust.between(2,10)
+    locust.between(5, 10)
