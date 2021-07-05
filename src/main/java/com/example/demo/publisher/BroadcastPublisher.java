@@ -41,6 +41,7 @@ public class BroadcastPublisher {
 
         channelMap.get(key).add(session);
         Request request = new Request();
+        request.setSessionId(session.getId());
         request.setPayloadType(PayloadType.START_TEST);
         request.setReceiver(key);
         request.setChannelId(key);

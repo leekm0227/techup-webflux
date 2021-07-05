@@ -12,6 +12,7 @@ class ChannelTaskSet(locust.TaskSet):
         super().__init__(parent)
         self.ws = create_connection('ws://localhost:22222/channel')
         self.channel_id = ""
+        self.session_id = ""
         self.pos = []
 
     def on_start(self):
@@ -22,6 +23,7 @@ class ChannelTaskSet(locust.TaskSet):
                     data = json.loads(res)
 
                     if data["payloadType"] == "START_TEST":
+                        self.session_id = data["sessionId"]
                         self.channel_id = data["receiver"]
                         self.pos = data["pos"]
                     elif data["payloadType"] == "MOVE":
