@@ -93,7 +93,7 @@ public class EventHandler {
     }
 
     private String move(Request request) {
-        request.setAfterPos(posManager.move(request.getSessionId(), request.getDir()));
+        request.setPos(posManager.move(request.getSessionId(), request.getDir()));
         broadcastPublisher.next(request);
         return "";
     }

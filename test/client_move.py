@@ -26,13 +26,24 @@ class ChannelTaskSet(locust.TaskSet):
                         self.session_id = data["sessionId"]
                         self.channel_id = data["receiver"]
                         self.pos = data["pos"]
-                    elif data["payloadType"] == "MOVE":
-                        locust.events.request_success.fire(
-                            request_type='recv',
-                            name='recv',
-                            response_time=round(time.time() * 1000) - int(data['regTime']),
-                            response_length=len(res),
-                        )
+                    elif data["payloadType"] == "MOVE" and data["sessionId"] == self.session_id:
+                        x = self.pos[0] + data["dir"][0]
+                        y = self.pos[0] + data["dir"][0]
+
+                        if data["pos"][0] == x and data["pos"][0] == y:
+                            locust.events.request_success.fire(
+                                request_type='recv',
+                                name='recv',
+                                response_time=round(time.time() * 1000) - int(data['regTime']),
+                                response_length=len(res),
+                            )
+                        else:
+                            locust.events.request_failure.fire(
+                                request_type='recv',
+                                name='not valid pos',
+                                response_time=round(time.time() * 1000) - int(data['regTime']),
+                                response_length=len(res),
+                            )
                 except Exception as e:
                     locust.events.request_failure.fire(
                         request_type='send',
@@ -55,14 +66,14 @@ class ChannelTaskSet(locust.TaskSet):
 
                 if random.choice([True, False]):
                     if random.choice([True, False]):
-                        x = max(x-1, 0)
+                        x = max(x - 1, 0)
                     else:
-                        x = min(x+1, 1000)
+                        x = min(x + 1, 1000)
                 else:
                     if random.choice([True, False]):
-                        y = max(x-1, 0)
+                        y = max(x - 1, 0)
                     else:
-                        y = min(x+1, 1000)
+                        y = min(x + 1, 1000)
 
                 direction = [x, y]
                 data = {
@@ -70,7 +81,7 @@ class ChannelTaskSet(locust.TaskSet):
                     "receiveType": 1,
                     "receiver": self.channel_id,
                     "regTime": round(time.time() * 1000),
-                    "dir": direction
+                    "dir": direction,
                 }
                 body = json.dumps(data)
                 self.ws.send(body)

@@ -12,6 +12,5 @@ public class Request {
     private String body;
     private int[] dir;
     private int[] pos;
-    private int[] afterPos;
     private long regTime;
 }
