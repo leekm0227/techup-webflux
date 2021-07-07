@@ -6,6 +6,7 @@ import com.example.demo.model.ReceiveType;
 import com.example.demo.model.Request;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketSession;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.ParallelFlux;
 import reactor.core.publisher.Sinks;
 
@@ -20,6 +21,7 @@ public class BroadcastPublisher {
     private final ConcurrentHashMap<String, List<WebSocketSession>> channelMap;
     private final Sinks.Many<Request> sink;
     private final PosManager posManager;
+    private final static int USER_SIZE = 10000;
 
     public BroadcastPublisher(PosManager posManager) {
         this.sessionMap = new ConcurrentHashMap<>();
@@ -28,31 +30,24 @@ public class BroadcastPublisher {
         this.posManager = posManager;
     }
 
-    private void test(WebSocketSession session) {
-        int CHANNEL_SIZE = 1;
-
-        ArrayList<WebSocketSession> sessionList = new ArrayList<>(sessionMap.values());
-        int index = sessionList.indexOf(session);
-        String key = "channel" + Math.floorDiv(index, CHANNEL_SIZE);
+    public String getChannelId(String sessionId) {
+        int index = new ArrayList<>(sessionMap.values()).indexOf(sessionMap.get(sessionId));
+        String key = "channel" + Math.floorDiv(index, USER_SIZE);
 
         if (!channelMap.containsKey(key)) {
             channelMap.put(key, new ArrayList<>());
         }
 
-        channelMap.get(key).add(session);
-        Request request = new Request();
-        request.setSessionId(session.getId());
-        request.setPayloadType(PayloadType.START_TEST);
-        request.setReceiver(key);
-        request.setChannelId(key);
-        request.setRegTime(System.currentTimeMillis());
-        request.setPos(posManager.init(session.getId()));
-        this.next(request);
+        if (!channelMap.get(key).contains(sessionMap.get(sessionId))) {
+            channelMap.get(key).add(sessionMap.get(sessionId));
+        }
+
+        return key;
     }
 
     public void join(WebSocketSession session) {
         sessionMap.put(session.getId(), session);
-        test(session);
+//        test(session);
     }
 
     public void leave(WebSocketSession session) {
@@ -85,9 +80,12 @@ public class BroadcastPublisher {
     }
 
     public ParallelFlux<Request> subscribe(WebSocketSession session) {
-        return sink.asFlux().onBackpressureBuffer(1).parallel().filter(request -> (request.getReceiveType() == ReceiveType.SESSION && request.getReceiver().equals(session.getId()))
-                || (request.getReceiveType() == ReceiveType.CHANNEL && channelMap.get(request.getReceiver()).contains(session))
-                || (request.getPayloadType() == PayloadType.START_TEST)
-        );
+        return sink.asFlux()
+                .onBackpressureBuffer(1)
+                .parallel()
+                .filter(request -> (request.getReceiveType() == ReceiveType.SESSION && request.getReceiver().equals(session.getId()))
+                        || (request.getReceiveType() == ReceiveType.CHANNEL && channelMap.get(request.getReceiver()).contains(session))
+                        || (request.getPayloadType() == PayloadType.START_TEST)
+                );
     }
 }

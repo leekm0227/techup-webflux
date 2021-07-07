@@ -7,5 +7,6 @@ public enum PayloadType {
     CHANNEL_LEAVE,
     BROADCAST,
     START_TEST,
-    MOVE
+    MOVE,
+    INFO
 }

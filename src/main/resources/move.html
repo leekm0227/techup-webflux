@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<script type="text/babel">
+    class View extends React.Component {
+        constructor(props) {
+            super(props);
+            this.state = {
+                conn: null,
+                fields: Array(9000).fill(undefined),
+            }
+        }
+
+        conn() {
+            let ws = new WebSocket("ws://localhost:22222/channel");
+            ws.onopen = () => {
+                console.log("on open");
+                ws.send(JSON.stringify({"payloadType": 7}));
+            }
+
+            ws.onmessage = (msg) => {
+                let data = JSON.parse(msg.data);
+                console.log(data);
+                if (data.payloadType === "MOVE") {
+                    let fields = [...this.state.fields]
+                    let afterPos = data.pos[0] * 150 + data.pos[1]
+                    let beforePos = fields.findIndex((block) => (block !== undefined && block.sessionId === data.sessionId))
+                    if (beforePos > -1) fields[beforePos] = undefined
+                    fields[afterPos] = data
+                    this.setState(state => ({...state, fields: fields}))
+                }
+            }
+
+            ws.onclose = () => {
+                alert("disconnected");
+            }
+
+            this.setState((state) => ({...state, conn: ws}))
+        }
+
+        render() {
+            if (this.state.conn == null) {
+                return <button onClick={() => this.conn()}>conn</button>;
+            }
+
+            return (
+                <div style={{
+                    width: "3000px",
+                    height: "1200px",
+                    backgroundColor: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-around'
+                }}>
+                    {
+                        this.state.fields.map((item, index) => (
+                            <div style={{
+                                width: "16px",
+                                height: "16px",
+                                margin: "2px",
+                                backgroundColor: item !== undefined ? 'grey' : 'white'
+                            }}
+                                 key={index}/>
+                        ))
+                    }
+                </div>
+            )
+        }
+    }
+
+    ReactDOM.render(<View/>, document.querySelector("#root"))
+</script>
+<body>
+<div id="root"></div>
+</body>

@@ -32,6 +32,7 @@ public class EventHandler {
         eventMap.put(PayloadType.CHANNEL_LEAVE, this::channelLeave);
         eventMap.put(PayloadType.BROADCAST, this::broadcast);
         eventMap.put(PayloadType.MOVE, this::move);
+        eventMap.put(PayloadType.INFO, this::info);
     }
 
     private String response(HashMap<String, Object> result) {
@@ -96,5 +97,15 @@ public class EventHandler {
         request.setPos(posManager.move(request.getSessionId(), request.getDir()));
         broadcastPublisher.next(request);
         return "";
+    }
+
+    private String info(Request request) {
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("payloadType", PayloadType.INFO);
+        result.put("sessionId", request.getSessionId());
+        result.put("channelId", broadcastPublisher.getChannelId(request.getSessionId()));
+        result.put("pos", posManager.getPos(request.getSessionId()));
+
+        return response(result);
     }
 }

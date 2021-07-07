@@ -28,7 +28,7 @@ public class ChannelWebSocketHandler implements WebSocketHandler {
     public Mono<Void> handle(WebSocketSession session) {
         return session.send(Flux.merge(
                 broadcastPublisher.subscribe(session).map(payload -> session.textMessage(requestToJson(payload))),
-                session.receive().log("receive v2")
+                session.receive()
                         .doFirst(() -> broadcastPublisher.join(session))
                         .doFinally((signal) -> broadcastPublisher.leave(session))
                         .map(webSocketMessage -> eventHandler.handle(session.getId(), webSocketMessage.getPayloadAsText()))
