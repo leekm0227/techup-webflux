@@ -28,7 +28,7 @@ public class BroadcastPublisher {
     }
 
     private void test(WebSocketSession session) {
-        int CHANNEL_SIZE = 10;
+        int CHANNEL_SIZE = 20;
 
         ArrayList<WebSocketSession> sessionList = new ArrayList<>(sessionMap.values());
         int index = sessionList.indexOf(session);

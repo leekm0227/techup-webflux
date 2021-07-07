@@ -8,6 +8,8 @@ import locust
 
 
 class ChannelTaskSet(locust.TaskSet):
+    wait_time = locust.between(2, 5)
+
     def __init__(self, parent):
         super().__init__(parent)
         self.ws = create_connection('ws://localhost:22222/v2/channel')
@@ -18,14 +20,16 @@ class ChannelTaskSet(locust.TaskSet):
             while True:
                 res = self.ws.recv()
                 data = json.loads(res)
+                res_time = time.time() * 1000
 
                 if data["payloadType"] == "START_TEST":
                     self.channel_id = data["receiver"]
                 elif data["payloadType"] == "BROADCAST":
+                    response_time = round((res_time - data['txtime']))
                     locust.events.request_success.fire(
                         request_type='recv',
                         name=data["payloadType"],
-                        response_time=round(time.time() * 1000) - int(data['txtime']),
+                        response_time=response_time,
                         response_length=len(res),
                     )
 
@@ -50,5 +54,3 @@ class ChannelTaskSet(locust.TaskSet):
 
 class ChatLocust(locust.HttpUser):
     tasks = [ChannelTaskSet]
-    min_wait = 2000
-    max_wait = 3000
