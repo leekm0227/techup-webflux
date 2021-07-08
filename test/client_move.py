@@ -8,7 +8,7 @@ from websocket import create_connection
 
 
 class ChannelTaskSet(locust.TaskSet):
-    wait_time = locust.between(2, 5)
+    wait_time = locust.between(1, 2)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -24,35 +24,43 @@ class ChannelTaskSet(locust.TaskSet):
                 try:
                     res = self.ws.recv()
                     data = json.loads(res)
-                    res_time = time.time()
+                    res_time = time.time() * 1000
 
                     if data["payloadType"] == "INFO":
                         self.session_id = data["sessionId"]
                         self.channel_id = data["channelId"]
                         self.pos = data["pos"]
                     elif data["payloadType"] == "MOVE" and data["sessionId"] == self.session_id:
-                        response_time = int((res_time - data['regTime']) * 1000)
                         x = self.pos[0] + data["dir"][0]
                         y = self.pos[0] + data["dir"][0]
 
                         if data["pos"][0] == x and data["pos"][0] == y:
                             locust.events.request_success.fire(
                                 request_type='recv',
-                                name='success',
-                                response_time=response_time,
+                                name='pos',
+                                response_time=res_time - data['regTime'],
                                 response_length=len(res),
                             )
                         else:
-                            print("fail:", self.session_id, self.pos, data['dir'], data['pos'])
+                            # print("fail:", self.session_id, self.pos, data['dir'], data['pos'])
                             locust.events.request_failure.fire(
                                 request_type='recv',
-                                name='fail',
+                                name='pos',
                                 response_time=res_time - data['regTime'],
                                 response_length=len(res),
                                 exception='not valid pos'
                             )
 
                         self.pos = data["pos"]
+
+                    if data["payloadType"] == "MOVE":
+                        print(data['regTime'], res_time)
+                        locust.events.request_success.fire(
+                            request_type='recv',
+                            name='recv',
+                            response_time=res_time - data['regTime'],
+                            response_length=len(res),
+                        )
                 except Exception as e:
                     locust.events.request_failure.fire(
                         request_type='recv',
@@ -69,7 +77,8 @@ class ChannelTaskSet(locust.TaskSet):
 
     @locust.task
     def send(self):
-        if self.channel_id != "" and self.pos and self.pos != self.tmpPos:
+        # if self.channel_id != "" and self.pos and self.pos != self.tmpPos:
+        if self.channel_id != "" and self.pos:
             try:
                 x = 0
                 y = 0
@@ -90,7 +99,7 @@ class ChannelTaskSet(locust.TaskSet):
                     "payloadType": 6,
                     "receiveType": 1,
                     "receiver": self.channel_id,
-                    "regTime": time.time(),
+                    "regTime": time.time() * 1000,
                     "body": "test",
                     "dir": direction,
                 }
