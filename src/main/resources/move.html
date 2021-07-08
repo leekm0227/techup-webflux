@@ -6,16 +6,28 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <script type="text/babel">
-    class View extends React.Component {
-        constructor(props) {
-            super(props);
-            this.state = {
-                conn: null,
-                fields: Array(9000).fill(undefined),
-            }
-        }
+    const View = () => {
+        const offset = 20
+        let conn = null
+        const [users, setUsers] = React.useState([])
+        const canvasRef = React.useRef(null)
 
-        conn() {
+        React.useEffect(() => {
+            const canvas = canvasRef.current
+            const context = canvas.getContext('2d')
+
+            context.fillStyle = '#e0e0e0'
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = '#5c5c5c'
+
+            users.map((user) => {
+                context.fillRect(user.pos[0] + offset, user.pos[1] + offset, 5, 5)
+            })
+        }, [users])
+
+        const start = () => {
+            if (conn != null) return
+
             let ws = new WebSocket("ws://localhost:22222/channel");
             ws.onopen = () => {
                 console.log("on open");
@@ -24,14 +36,14 @@
 
             ws.onmessage = (msg) => {
                 let data = JSON.parse(msg.data);
-                console.log(data);
                 if (data.payloadType === "MOVE") {
-                    let fields = [...this.state.fields]
-                    let afterPos = data.pos[0] * 150 + data.pos[1]
-                    let beforePos = fields.findIndex((block) => (block !== undefined && block.sessionId === data.sessionId))
-                    if (beforePos > -1) fields[beforePos] = undefined
-                    fields[afterPos] = data
-                    this.setState(state => ({...state, fields: fields}))
+                    setUsers((users) => {
+                        let target = users.findIndex((user) => (user !== undefined && user.sessionId === data.sessionId))
+                        target > -1 ? users[target] = data : users.push(data)
+                        users = users.filter(x => x != null)
+
+                        return [...users]
+                    })
                 }
             }
 
@@ -39,38 +51,15 @@
                 alert("disconnected");
             }
 
-            this.setState((state) => ({...state, conn: ws}))
+            conn = ws
         }
 
-        render() {
-            if (this.state.conn == null) {
-                return <button onClick={() => this.conn()}>conn</button>;
-            }
-
-            return (
-                <div style={{
-                    width: "3000px",
-                    height: "1200px",
-                    backgroundColor: 'white',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flexWrap: 'wrap',
-                    justifyContent: 'space-around'
-                }}>
-                    {
-                        this.state.fields.map((item, index) => (
-                            <div style={{
-                                width: "16px",
-                                height: "16px",
-                                margin: "2px",
-                                backgroundColor: item !== undefined ? 'grey' : 'white'
-                            }}
-                                 key={index}/>
-                        ))
-                    }
-                </div>
-            )
-        }
+        return (
+            <div>
+                <button onClick={() => start()}>conn</button>
+                <canvas width="1050" height="1050" ref={canvasRef}/>
+            </div>
+        )
     }
 
     ReactDOM.render(<View/>, document.querySelector("#root"))

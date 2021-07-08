@@ -8,8 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class PosManager {
     private final ConcurrentHashMap<String, int[]> posMap;
-    private final int MAX_X = 150;
-    private final int MAX_Y = 60;
+    private final int MAX_X = 1000;
+    private final int MAX_Y = 1000;
     private final int MIN = 0;
 
     public PosManager() {
