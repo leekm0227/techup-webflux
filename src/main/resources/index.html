@@ -10,10 +10,12 @@
         var ws = new WebSocket("ws://localhost:22222/channel");
         ws.onopen = () => {
             console.log("on open");
+            ws.send(JSON.stringify({"payloadType": 7}));
         }
 
         ws.onmessage = (msg) => {
             var data = JSON.parse(msg.data);
+            console.log(data['regTime'] - new Date().getTime())
         }
 
         ws.onclose = () => {

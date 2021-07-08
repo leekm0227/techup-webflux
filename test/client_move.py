@@ -54,7 +54,7 @@ class ChannelTaskSet(locust.TaskSet):
                         self.pos = data["pos"]
 
                     if data["payloadType"] == "MOVE":
-                        print(data['regTime'], res_time)
+                        # print(data['regTime'], res_time)
                         locust.events.request_success.fire(
                             request_type='recv',
                             name='recv',
