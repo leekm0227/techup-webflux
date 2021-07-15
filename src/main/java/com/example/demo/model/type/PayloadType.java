@@ -1,4 +1,4 @@
-package com.example.demo.model;
+package com.example.demo.model.type;
 
 public enum PayloadType {
     CHANNEL_LIST,
@@ -8,5 +8,6 @@ public enum PayloadType {
     BROADCAST,
     START_TEST,
     MOVE,
-    INFO
+    INFO,
+    ATTACK
 }

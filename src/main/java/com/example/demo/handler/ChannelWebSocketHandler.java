@@ -1,6 +1,5 @@
 package com.example.demo.handler;
 
-import com.example.demo.manager.PosManager;
 import com.example.demo.model.Request;
 import com.example.demo.publisher.BroadcastPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;

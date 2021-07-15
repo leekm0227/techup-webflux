@@ -1,9 +1,9 @@
 package com.example.demo.handler;
 
-import com.example.demo.manager.PosManager;
-import com.example.demo.model.PayloadType;
+import com.example.demo.manager.PlayerManager;
 import com.example.demo.model.Request;
-import com.example.demo.model.ResultType;
+import com.example.demo.model.type.PayloadType;
+import com.example.demo.model.type.ResultType;
 import com.example.demo.publisher.BroadcastPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,11 +18,11 @@ public class EventHandler {
     private final HashMap<PayloadType, Function<Request, String>> eventMap;
     private final ObjectMapper mapper;
     private final BroadcastPublisher broadcastPublisher;
-    private final PosManager posManager;
+    private final PlayerManager playerManager;
 
-    EventHandler(BroadcastPublisher broadcastPublisher, PosManager posManager) {
+    EventHandler(BroadcastPublisher broadcastPublisher, PlayerManager playerManager) {
         this.broadcastPublisher = broadcastPublisher;
-        this.posManager = posManager;
+        this.playerManager = playerManager;
         this.mapper = new ObjectMapper();
         this.eventMap = new HashMap<>();
 
@@ -33,6 +33,7 @@ public class EventHandler {
         eventMap.put(PayloadType.BROADCAST, this::broadcast);
         eventMap.put(PayloadType.MOVE, this::move);
         eventMap.put(PayloadType.INFO, this::info);
+        eventMap.put(PayloadType.ATTACK, this::attack);
     }
 
     private String response(HashMap<String, Object> result) {
@@ -94,7 +95,7 @@ public class EventHandler {
     }
 
     private String move(Request request) {
-        request.setPos(posManager.move(request.getSessionId(), request.getDir()));
+        request.setPos(playerManager.move(request.getSessionId(), request.getDir()).getPos());
         broadcastPublisher.next(request);
         return "";
     }
@@ -104,8 +105,13 @@ public class EventHandler {
         result.put("payloadType", PayloadType.INFO);
         result.put("sessionId", request.getSessionId());
         result.put("channelId", broadcastPublisher.getChannelId(request.getSessionId()));
-        result.put("pos", posManager.getPos(request.getSessionId()));
+        result.put("player", playerManager.getPlayer(request.getSessionId()));
 
         return response(result);
+    }
+
+    private String attack(Request request) {
+
+        return "";
     }
 }

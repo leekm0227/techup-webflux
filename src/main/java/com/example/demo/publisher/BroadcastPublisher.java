@@ -1,12 +1,11 @@
 package com.example.demo.publisher;
 
-import com.example.demo.manager.PosManager;
-import com.example.demo.model.PayloadType;
-import com.example.demo.model.ReceiveType;
+import com.example.demo.manager.PlayerManager;
+import com.example.demo.model.type.PayloadType;
+import com.example.demo.model.type.ReceiveType;
 import com.example.demo.model.Request;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketSession;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.ParallelFlux;
 import reactor.core.publisher.Sinks;
 
@@ -20,14 +19,14 @@ public class BroadcastPublisher {
     private final ConcurrentHashMap<String, WebSocketSession> sessionMap;
     private final ConcurrentHashMap<String, List<WebSocketSession>> channelMap;
     private final Sinks.Many<Request> sink;
-    private final PosManager posManager;
+    private final PlayerManager playerManager;
     private final static int USER_SIZE = 10000;
 
-    public BroadcastPublisher(PosManager posManager) {
+    public BroadcastPublisher(PlayerManager playerManager) {
         this.sessionMap = new ConcurrentHashMap<>();
         this.channelMap = new ConcurrentHashMap<>();
         this.sink = Sinks.many().multicast().onBackpressureBuffer(1);
-        this.posManager = posManager;
+        this.playerManager = playerManager;
     }
 
     public String getChannelId(String sessionId) {
@@ -51,7 +50,7 @@ public class BroadcastPublisher {
     }
 
     public void leave(WebSocketSession session) {
-        posManager.leave(session.getId());
+        playerManager.leave(session.getId());
         sessionMap.remove(session.getId());
     }
 
