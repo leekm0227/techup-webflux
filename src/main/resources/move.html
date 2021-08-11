@@ -8,55 +8,141 @@
 <script type="text/babel">
     const View = () => {
         const offset = 20
-        let conn = null
-        const [users, setUsers] = React.useState([])
+        let ws = null;
+        const [id, setId] = React.useState()
+        const [users, setUsers] = React.useState({})
+        const usersRef = React.useRef(users)
+        const idRef = React.useRef(id)
         const canvasRef = React.useRef(null)
 
         React.useEffect(() => {
+            ws = connServer()
+            window.addEventListener("keydown", handleKeyDown)
+            return () => window.removeEventListener("keydown", handleKeyDown)
+        }, [])
+
+        React.useEffect(() => {
+            usersRef.current = users
             const canvas = canvasRef.current
             const context = canvas.getContext('2d')
-
+            const size = 10;
             context.fillStyle = '#e0e0e0'
             context.fillRect(0, 0, canvas.width, canvas.height);
-            context.fillStyle = '#5c5c5c'
-
-            users.map((user) => {
-                context.fillRect(user.pos[0] + offset, user.pos[1] + offset, 5, 5)
+            Object.keys(users).map((key) => {
+                let user = users[key]
+                context.fillStyle = user.id !== id ? 'rgba(92,92,92,' + user.hp / 10 + ')' : 'rgba(50,100,50,' + user.hp / 10 + ')';
+                context.fillRect((user.pos[0] * size) + offset, (user.pos[1] * size) + offset, (size), (size))
             })
         }, [users])
 
-        const start = () => {
-            if (conn != null) return
-
-            let ws = new WebSocket("ws://localhost:22222/channel");
-            ws.onopen = () => {
-                console.log("on open");
-                ws.send(JSON.stringify({"payloadType": 7}));
+        const handleKeyDown = (e) => {
+            if (!ws) {
+                console.log("ws null")
+                return
             }
 
-            ws.onmessage = (msg) => {
-                let data = JSON.parse(msg.data);
-                if (data.payloadType === "MOVE") {
-                    setUsers((users) => {
-                        let target = users.findIndex((user) => (user !== undefined && user.sessionId === data.sessionId))
-                        target > -1 ? users[target] = data : users.push(data)
-                        users = users.filter(x => x != null)
+            let data = {
+                "payloadType": 2,
+                "receiveType": 1,
+                "regTime": new Date().getTime(),
+                "dir": [0, 0],
+            }
 
-                        return [...users]
+            switch (e.key) {
+                case "ArrowDown":
+                    data.dir = [0, 1]
+                    ws.send(JSON.stringify(data));
+                    break;
+                case "ArrowUp":
+                    data.dir = [0, -1]
+                    ws.send(JSON.stringify(data));
+                    break;
+                case "ArrowRight":
+                    data.dir = [1, 0]
+                    ws.send(JSON.stringify(data));
+                    break;
+                case "ArrowLeft":
+                    data.dir = [-1, 0]
+                    ws.send(JSON.stringify(data));
+                    break;
+                case " ":
+                    let users = usersRef.current
+                    let id = idRef.current
+                    let targetId = ""
+                    Object.keys(users).map((key) => {
+                        let user = users[key]
+                        if (users[id] !== undefined && id !== user.id && calDis(users[id].pos, user.pos) < 2) targetId = user.id
                     })
+
+                    data.payloadType = 3
+                    data.targetId = targetId
+                    ws.send(JSON.stringify(data));
+                    break;
+            }
+        }
+
+        const calDis = (pos1, pos2) => {
+            let x = pos1[0] - pos2[0]
+            let y = pos1[1] - pos2[1]
+            let result = Math.sqrt(Math.abs(x * x) + Math.abs(y * y))
+            return result
+        }
+
+        const connServer = () => {
+            let conn = new WebSocket("ws://localhost:22222/channel");
+            conn.onopen = () => {
+                console.log("on open");
+                conn.send(JSON.stringify({"payloadType": 1}));
+            }
+
+            conn.onmessage = (msg) => {
+                let data = JSON.parse(msg.data);
+
+                switch (data.payloadType) {
+                    case "ATTACK":
+                        setUsers((users) => {
+                            return {...users, [data.player.id]: data.player}
+                        })
+                        break;
+                    case "DEAD":
+                        if (data.sessionId === idRef.current) {
+                            alert("died...")
+                            // location.reload()
+                            return
+                        }
+
+                        setUsers((users) => {
+                            delete users[data.sessionId]
+                            return {...users}
+                        })
+                        break;
+                    case "SPAWN":
+                        setUsers((users) => {
+                            return {...users, [data.player.id]: data.player}
+                        })
+                        break;
+                    case "MOVE":
+                        setUsers((users) => {
+                            return {...users, [data.player.id]: data.player}
+                        })
+                        break;
+                    case "INIT":
+                        setId(data.id)
+                        idRef.current = data.id
+                        setUsers(data.players)
+                        break;
                 }
             }
 
-            ws.onclose = () => {
+            conn.onclose = () => {
                 alert("disconnected");
             }
 
-            conn = ws
+            return conn
         }
 
         return (
             <div>
-                <button onClick={() => start()}>conn</button>
                 <canvas width="1050" height="1050" ref={canvasRef}/>
             </div>
         )

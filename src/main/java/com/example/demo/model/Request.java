@@ -23,5 +23,6 @@ public class Request {
     private int[] pos;
 
     // attack
+    private Player player;
     private String targetId;
 }

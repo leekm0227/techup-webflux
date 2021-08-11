@@ -1,6 +1,7 @@
 package com.example.demo.handler;
 
 import com.example.demo.manager.PlayerManager;
+import com.example.demo.model.Player;
 import com.example.demo.model.Request;
 import com.example.demo.model.type.PayloadType;
 import com.example.demo.model.type.ResultType;
@@ -26,13 +27,10 @@ public class EventHandler {
         this.mapper = new ObjectMapper();
         this.eventMap = new HashMap<>();
 
-        eventMap.put(PayloadType.CHANNEL_LIST, this::channelList);
-        eventMap.put(PayloadType.CHANNEL_CREATE, this::channelCreate);
-        eventMap.put(PayloadType.CHANNEL_JOIN, this::channelJoin);
-        eventMap.put(PayloadType.CHANNEL_LEAVE, this::channelLeave);
         eventMap.put(PayloadType.BROADCAST, this::broadcast);
+        eventMap.put(PayloadType.INIT, this::init);
+        eventMap.put(PayloadType.SPAWN, this::spawn);
         eventMap.put(PayloadType.MOVE, this::move);
-        eventMap.put(PayloadType.INFO, this::info);
         eventMap.put(PayloadType.ATTACK, this::attack);
     }
 
@@ -65,28 +63,9 @@ public class EventHandler {
         return response(result);
     }
 
-    private String channelList(Request request) {
-        HashMap<String, Object> result = new HashMap<>();
-        result.put("list", broadcastPublisher.getList());
-        return response(result);
-    }
-
-    private String channelCreate(Request request) {
-        HashMap<String, Object> result = new HashMap<>();
-        result.put("channelId", broadcastPublisher.createChannel(request.getSessionId()));
-        return response(result);
-    }
-
-    private String channelJoin(Request request) {
-        HashMap<String, Object> result = new HashMap<>();
-        broadcastPublisher.joinChannel(request.getChannelId(), request.getSessionId());
-        return response(result);
-    }
-
-    private String channelLeave(Request request) {
-        HashMap<String, Object> result = new HashMap<>();
-        broadcastPublisher.leaveChannel(request.getChannelId(), request.getSessionId());
-        return response(result);
+    private String spawn(Request request) {
+        playerManager.spawn(request.getSessionId());
+        return "";
     }
 
     private String broadcast(Request request) {
@@ -94,24 +73,32 @@ public class EventHandler {
         return "";
     }
 
+    private String init(Request request) {
+        HashMap<String, Object> result = new HashMap<>();
+        playerManager.spawn(request.getSessionId());
+        result.put("payloadType", PayloadType.INIT);
+        result.put("id", request.getSessionId());
+        result.put("players", playerManager.list());
+        return response(result);
+    }
+
     private String move(Request request) {
-        request.setPos(playerManager.move(request.getSessionId(), request.getDir()).getPos());
+        request.setPlayer(playerManager.move(request.getSessionId(), request.getDir()));
         broadcastPublisher.next(request);
         return "";
     }
 
-    private String info(Request request) {
-        HashMap<String, Object> result = new HashMap<>();
-        result.put("payloadType", PayloadType.INFO);
-        result.put("sessionId", request.getSessionId());
-        result.put("channelId", broadcastPublisher.getChannelId(request.getSessionId()));
-        result.put("player", playerManager.getPlayer(request.getSessionId()));
-
-        return response(result);
-    }
-
     private String attack(Request request) {
+        if (request.getTargetId().equals("")) return "";
+        Player target = playerManager.attack(request.getSessionId(), request.getTargetId());
+        if (target == null) return "";
+        if (target.getHp() < 1) {
+            playerManager.dead(request.getTargetId());
+            return "";
+        }
 
+        request.setPlayer(target);
+        broadcastPublisher.next(request);
         return "";
     }
 }

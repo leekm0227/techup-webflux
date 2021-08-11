@@ -6,6 +6,7 @@ import lombok.Data;
 
 @Data
 public class Player {
+    private String id;
     private int[] pos;
     private int hp;
     private int power;
