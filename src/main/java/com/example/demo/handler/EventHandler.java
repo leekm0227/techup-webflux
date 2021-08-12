@@ -79,17 +79,20 @@ public class EventHandler {
         result.put("payloadType", PayloadType.INIT);
         result.put("id", request.getSessionId());
         result.put("players", playerManager.list());
+        result.put("regTime", System.currentTimeMillis());
         return response(result);
     }
 
     private String move(Request request) {
-        request.setPlayer(playerManager.move(request.getSessionId(), request.getDir()));
+        Player player = playerManager.move(request.getSessionId(), request.getDir());
+        if(player == null) return "";
+        request.setPlayer(player);
         broadcastPublisher.next(request);
         return "";
     }
 
     private String attack(Request request) {
-        if (request.getTargetId().equals("")) return "";
+        if (request.getTargetId().equals("") || request.getSessionId().equals(request.getTargetId())) return "";
         Player target = playerManager.attack(request.getSessionId(), request.getTargetId());
         if (target == null) return "";
         if (target.getHp() < 1) {

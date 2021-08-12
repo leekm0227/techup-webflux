@@ -21,6 +21,6 @@ public class BroadcastPublisher {
     }
 
     public Flux<Request> subscribe() {
-        return sink.asFlux().log("broadcast");
+        return sink.asFlux();
     }
 }

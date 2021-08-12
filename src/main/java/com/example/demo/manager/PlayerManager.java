@@ -7,10 +7,7 @@ import com.example.demo.model.type.ReceiveType;
 import com.example.demo.publisher.BroadcastPublisher;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -48,6 +45,7 @@ public class PlayerManager {
         Request request = new Request();
         request.setPayloadType(PayloadType.SPAWN);
         request.setReceiveType(ReceiveType.CHANNEL);
+        request.setRegTime(System.currentTimeMillis());
         request.setSessionId(sessionId);
         request.setPlayer(player);
         broadcastPublisher.next(request);
@@ -59,6 +57,7 @@ public class PlayerManager {
         Request request = new Request();
         request.setPayloadType(PayloadType.DEAD);
         request.setReceiveType(ReceiveType.CHANNEL);
+        request.setRegTime(System.currentTimeMillis());
         request.setSessionId(sessionId);
         broadcastPublisher.next(request);
     }
@@ -90,9 +89,10 @@ public class PlayerManager {
         playerMap.computeIfPresent(targetId, (key, target) -> {
             int x = player.getPos()[0] - target.getPos()[0];
             int y = player.getPos()[1] - target.getPos()[1];
+            double dis = Math.sqrt(Math.abs(x * x) + Math.abs(y * y));
 
             // range: 1
-            if (Math.sqrt(Math.abs(x * x) + Math.abs(y * y)) < 2) {
+            if (dis < 2) {
                 int hp = target.getHp() - player.getPower();
                 target.setHp(hp);
             }

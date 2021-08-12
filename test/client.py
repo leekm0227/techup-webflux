@@ -1,5 +1,7 @@
 import json
+import random
 import time
+import math
 
 import gevent
 import locust
@@ -7,10 +9,14 @@ from websocket import create_connection
 
 
 class ChannelTaskSet(locust.TaskSet):
+    wait_time = locust.between(0.2, 0.5)
+
     def __init__(self, parent):
         super().__init__(parent)
         self.ws = create_connection('ws://localhost:22222/channel')
-        self.channel_id = ""
+        self.id = ""
+        self.target = ""
+        self.users = {}
 
     def on_start(self):
         def _receive():
@@ -18,21 +24,38 @@ class ChannelTaskSet(locust.TaskSet):
                 try:
                     res = self.ws.recv()
                     data = json.loads(res)
+                    res_time = time.time() * 1000
 
-                    if data["payloadType"] == "START_TEST":
-                        self.channel_id = data["receiver"]
-                    elif data["payloadType"] == "BROADCAST":
-                        locust.events.request_success.fire(
-                            request_type='recv',
-                            name='recv',
-                            response_time=round(time.time() * 1000) - int(data['regTime']),
-                            response_length=len(res),
-                        )
+                    if data["payloadType"] == "INIT":
+                        self.id = data["id"]
+                        self.users = data["players"]
+                    elif data["payloadType"] == "MOVE":
+                        self.users[data["player"]["id"]] = data["player"]
+                    elif data["payloadType"] == "SPAWN":
+                        self.users[data["player"]["id"]] = data["player"]
+                    elif data["payloadType"] == "ATTACK":
+                        self.users[data["player"]["id"]] = data["player"]
+                    elif data["payloadType"] == "DEAD":
+                        del self.users[data["sessionId"]]
+                        if data["sessionId"] == self.id:
+                            time.sleep(1)
+                            self.id = ""
+                            self.users = {}
+                            self.ws.close()
+                            self.ws = create_connection('ws://localhost:22222/channel')
+
+                    locust.events.request_success.fire(
+                        request_type='recv',
+                        name='pos',
+                        response_time=res_time - data['regTime'],
+                        response_length=len(res),
+                    )
                 except Exception as e:
                     locust.events.request_failure.fire(
-                        request_type='send',
-                        name='send',
-                        response_time=round(time.time() * 1000),
+                        request_type='recv',
+                        name='fail',
+                        response_time=0,
+                        response_length=0,
                         exception=e
                     )
 
@@ -43,32 +66,80 @@ class ChannelTaskSet(locust.TaskSet):
 
     @locust.task
     def send(self):
-        if self.channel_id != "":
+        if self.id != "":
             try:
+                # attack or move
+                if random.choice([True, False]):
+                    self.target = ""
+
+                    for k in self.users.keys():
+                        if self.id != k:
+                            pos1 = self.users[self.id]["pos"]
+                            pos2 = self.users[k]["pos"]
+                            x = pos1[0] - pos2[0]
+                            y = pos1[1] - pos2[1]
+                            dis = math.sqrt(abs(x*x) + abs(y*y))
+
+                            if dis < 2:
+                                self.target = k
+                                break
+
+                    if self.target != "":
+                        data = {
+                            "payloadType": 3,
+                            "receiveType": 1,
+                            "regTime": time.time() * 1000,
+                            "targetId": self.target,
+                        }
+                        body = json.dumps(data)
+                        self.ws.send(body)
+                        locust.events.request_success.fire(
+                            request_type='send',
+                            name='success',
+                            response_time=0,
+                            response_length=0,
+                        )
+                        return
+
+                # set dir
+                if random.choice([True, False]):
+                    if random.choice([True, False]):
+                        direction = [-1, 0]
+                    else:
+                        direction = [1, 0]
+                else:
+                    if random.choice([True, False]):
+                        direction = [0, -1]
+                    else:
+                        direction = [0, 1]
+
                 data = {
-                    "payloadType": 4,
+                    "payloadType": 2,
                     "receiveType": 1,
-                    "receiver": self.channel_id,
-                    "regTime": round(time.time() * 1000),
-                    "body": "Welcome to the website. If you're here, you're likely looking to find random words. Random Word Generator is the perfect tool to help you do this. While this tool isn't a word creator, it is a word generator that will generate random words for a variety of activities or uses. Even better, it allows you to adjust the parameters of the random words to best fit your needs."
+                    "regTime": time.time() * 1000,
+                    "dir": direction,
                 }
                 body = json.dumps(data)
                 self.ws.send(body)
                 locust.events.request_success.fire(
                     request_type='send',
-                    name='send',
-                    response_time=round(time.time() * 1000) - int(data['regTime']),
-                    response_length=len(data['body']),
+                    name='success',
+                    response_time=0,
+                    response_length=0,
                 )
             except Exception as e:
                 locust.events.request_failure.fire(
                     request_type='send',
-                    name='send',
-                    response_time=round(time.time() * 1000),
+                    name='fail',
+                    response_time=0,
+                    response_length=0,
                     exception=e
                 )
+        else:
+            data = {"payloadType": 1, "regTime": time.time() * 1000}
+            body = json.dumps(data)
+            self.ws.send(body)
 
 
 class ChatLocust(locust.HttpUser):
     tasks = [ChannelTaskSet]
-    locust.between(2,10)

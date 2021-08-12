@@ -92,7 +92,7 @@
             let conn = new WebSocket("ws://localhost:22222/channel");
             conn.onopen = () => {
                 console.log("on open");
-                conn.send(JSON.stringify({"payloadType": 1}));
+                conn.send(JSON.stringify({"payloadType": 1, "regTime": new Date().getTime()}));
             }
 
             conn.onmessage = (msg) => {
