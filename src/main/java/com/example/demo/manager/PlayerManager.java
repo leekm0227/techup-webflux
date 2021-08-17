@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class PlayerManager {
     private final BroadcastPublisher broadcastPublisher;
-    private final ConcurrentHashMap<String, Player> playerMap;
     private final ConcurrentHashMap<String, Integer[]> posMap;
     private final ConcurrentHashMap<String, Integer[]> hpMap;
     private final int MAX_X = 100;
@@ -22,13 +21,22 @@ public class PlayerManager {
 
     public PlayerManager(BroadcastPublisher broadcastPublisher) {
         this.broadcastPublisher = broadcastPublisher;
-        this.playerMap = new ConcurrentHashMap<>();
         this.posMap = new ConcurrentHashMap<>();
         this.hpMap = new ConcurrentHashMap<>();
     }
 
-    public ConcurrentHashMap<String, Player> list() {
-        return playerMap;
+    public HashMap<String, Player> list() {
+        HashMap<String, Player> result = new HashMap<>();
+
+        for (String key : posMap.keySet()) {
+            result.put(key, new Player() {{
+                setId(key);
+                setPos(posMap.get(key));
+                setHp(hpMap.get(key));
+            }});
+        }
+
+        return result;
     }
 
     public void spawn(String sessionId) {
@@ -42,7 +50,6 @@ public class PlayerManager {
         // set random pos
         Random rand = new Random();
         player.setPos(new Integer[]{rand.nextInt(MAX_X), rand.nextInt(MAX_Y)});
-        playerMap.put(sessionId, player);
         posMap.put(sessionId, player.getPos());
         hpMap.put(sessionId, player.getHp());
 
@@ -57,7 +64,6 @@ public class PlayerManager {
     }
 
     public void dead(String sessionId) {
-        playerMap.remove(sessionId);
         posMap.remove(sessionId);
         hpMap.remove(sessionId);
 
@@ -69,8 +75,8 @@ public class PlayerManager {
         broadcastPublisher.next(request);
     }
 
-    public Player move(String sessionId, int[] dir) {
-        Player player = playerMap.get(sessionId);
+    public Integer[] move(String sessionId, int[] dir) {
+        Integer[] player = posMap.get(sessionId);
         if (player == null) return null;
 
         posMap.computeIfPresent(sessionId, (key, pos) -> {
@@ -91,26 +97,26 @@ public class PlayerManager {
             return pos;
         });
 
-        return playerMap.get(sessionId);
+        return posMap.get(sessionId);
     }
 
-    public Player attack(String sessionId, String targetId) {
-        Player player = playerMap.get(sessionId);
-        Player target = playerMap.get(targetId);
-        if (player == null || target == null) return null;
+    public Integer[] attack(String sessionId, String targetId) {
+        Integer[] playerPos = posMap.get(sessionId);
+        Integer[] targetPos = posMap.get(targetId);
+        if (playerPos == null || targetPos == null) return null;
 
-        int x = player.getPos()[0] - target.getPos()[0];
-        int y = player.getPos()[1] - target.getPos()[1];
+        int x = playerPos[0] - targetPos[0];
+        int y = playerPos[1] - targetPos[1];
         double dis = Math.sqrt(Math.abs(x * x) + Math.abs(y * y));
 
         // range: 1
         if (dis < 2) {
             hpMap.computeIfPresent(targetId, (key, hp) -> {
-                hp[0] = hp[0] - player.getPower();
+                hp[0] = hp[0] - 1;
                 return hp;
             });
         }
 
-        return playerMap.get(targetId);
+        return hpMap.get(targetId);
     }
 }

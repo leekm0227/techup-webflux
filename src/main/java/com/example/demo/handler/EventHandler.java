@@ -84,23 +84,29 @@ public class EventHandler {
     }
 
     private String move(Request request) {
-        Player player = playerManager.move(request.getSessionId(), request.getDir());
-        if(player == null) return "";
-        request.setPlayer(player);
+        Integer[] pos = playerManager.move(request.getSessionId(), request.getDir());
+        if (pos == null) return "";
+        request.setPlayer(new Player() {{
+            setId(request.getSessionId());
+            setPos(pos);
+        }});
         broadcastPublisher.next(request);
         return "";
     }
 
     private String attack(Request request) {
         if (request.getTargetId().equals("") || request.getSessionId().equals(request.getTargetId())) return "";
-        Player target = playerManager.attack(request.getSessionId(), request.getTargetId());
+        Integer[] target = playerManager.attack(request.getSessionId(), request.getTargetId());
         if (target == null) return "";
-        if (target.getHp()[0] < 1) {
+        if (target[0] < 1) {
             playerManager.dead(request.getTargetId());
             return "";
         }
 
-        request.setPlayer(target);
+        request.setPlayer(new Player() {{
+            setId(request.getSessionId());
+            setHp(target);
+        }});
         broadcastPublisher.next(request);
         return "";
     }

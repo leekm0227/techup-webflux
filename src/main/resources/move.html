@@ -101,7 +101,9 @@
                 switch (data.payloadType) {
                     case "ATTACK":
                         setUsers((users) => {
-                            return {...users, [data.player.id]: data.player}
+                            let user = users[data.sessionId]
+                            user.hp = data.player.hp
+                            return {...users, [data.sessionId]: user}
                         })
                         break;
                     case "DEAD":
@@ -118,12 +120,14 @@
                         break;
                     case "SPAWN":
                         setUsers((users) => {
-                            return {...users, [data.player.id]: data.player}
+                            return {...users, [data.sessionId]: data.player}
                         })
                         break;
                     case "MOVE":
                         setUsers((users) => {
-                            return {...users, [data.player.id]: data.player}
+                            let user = users[data.sessionId]
+                            user.pos = data.player.pos
+                            return {...users, [data.sessionId]: user}
                         })
                         break;
                     case "INIT":

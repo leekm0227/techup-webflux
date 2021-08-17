@@ -21,20 +21,20 @@ class ChannelTaskSet(locust.TaskSet):
     def on_start(self):
         def _receive():
             while True:
-                try:
-                    res = self.ws.recv()
-                    data = json.loads(res)
-                    res_time = time.time() * 1000
+                res = self.ws.recv()
+                data = json.loads(res)
+                res_time = time.time() * 1000
 
+                try:
                     if data["payloadType"] == "INIT":
                         self.id = data["id"]
                         self.users = data["players"]
                     elif data["payloadType"] == "MOVE":
-                        self.users[data["player"]["id"]] = data["player"]
+                        self.users[data["player"]["id"]]["pos"] = data["player"]["pos"]
                     elif data["payloadType"] == "SPAWN":
                         self.users[data["player"]["id"]] = data["player"]
                     elif data["payloadType"] == "ATTACK":
-                        self.users[data["player"]["id"]] = data["player"]
+                        self.users[data["player"]["id"]]["hp"] = data["player"]["hp"]
                     elif data["payloadType"] == "DEAD":
                         del self.users[data["sessionId"]]
                         if data["sessionId"] == self.id:
@@ -56,7 +56,7 @@ class ChannelTaskSet(locust.TaskSet):
                         name='fail',
                         response_time=0,
                         response_length=0,
-                        exception=e
+                        exception=(data, e)
                     )
 
         gevent.spawn(_receive)
