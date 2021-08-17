@@ -7,8 +7,8 @@ import lombok.Data;
 @Data
 public class Player {
     private String id;
-    private int[] pos;
-    private int hp;
+    private Integer[] pos;
+    private Integer[] hp;
     private int power;
     private PlayerType playerType;
     private ElementType elementType;

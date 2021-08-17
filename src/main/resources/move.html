@@ -30,7 +30,7 @@
             context.fillRect(0, 0, canvas.width, canvas.height);
             Object.keys(users).map((key) => {
                 let user = users[key]
-                context.fillStyle = user.id !== id ? 'rgba(92,92,92,' + user.hp / 10 + ')' : 'rgba(50,100,50,' + user.hp / 10 + ')';
+                context.fillStyle = user.id !== id ? 'rgba(92,92,92,' + user.hp[0] / 10 + ')' : 'rgba(50,100,50,' + user.hp[0] / 10 + ')';
                 context.fillRect((user.pos[0] * size) + offset, (user.pos[1] * size) + offset, (size), (size))
             })
         }, [users])

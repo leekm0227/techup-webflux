@@ -95,7 +95,7 @@ public class EventHandler {
         if (request.getTargetId().equals("") || request.getSessionId().equals(request.getTargetId())) return "";
         Player target = playerManager.attack(request.getSessionId(), request.getTargetId());
         if (target == null) return "";
-        if (target.getHp() < 1) {
+        if (target.getHp()[0] < 1) {
             playerManager.dead(request.getTargetId());
             return "";
         }
