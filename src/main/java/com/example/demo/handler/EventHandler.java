@@ -27,9 +27,7 @@ public class EventHandler {
         this.mapper = new ObjectMapper();
         this.eventMap = new HashMap<>();
 
-        eventMap.put(PayloadType.BROADCAST, this::broadcast);
         eventMap.put(PayloadType.INIT, this::init);
-        eventMap.put(PayloadType.SPAWN, this::spawn);
         eventMap.put(PayloadType.MOVE, this::move);
         eventMap.put(PayloadType.ATTACK, this::attack);
     }
@@ -63,23 +61,12 @@ public class EventHandler {
         return response(result);
     }
 
-    private String spawn(Request request) {
-        playerManager.spawn(request.getSessionId());
-        return "";
-    }
-
-    private String broadcast(Request request) {
-        broadcastPublisher.next(request);
-        return "";
-    }
-
     private String init(Request request) {
         HashMap<String, Object> result = new HashMap<>();
         playerManager.spawn(request.getSessionId());
         result.put("payloadType", PayloadType.INIT);
         result.put("id", request.getSessionId());
         result.put("players", playerManager.list());
-        result.put("regTime", System.currentTimeMillis());
         return response(result);
     }
 
