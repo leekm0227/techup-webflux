@@ -88,7 +88,7 @@ class ChannelTaskSet(locust.TaskSet):
                         data = {
                             "payloadType": 3,
                             "receiveType": 1,
-                            "regTime": time.time() * 1000,
+                            "regTime": round(time.time() * 1000),
                             "targetId": self.target,
                         }
                         body = json.dumps(data)
@@ -116,7 +116,7 @@ class ChannelTaskSet(locust.TaskSet):
                 data = {
                     "payloadType": 2,
                     "receiveType": 1,
-                    "regTime": time.time() * 1000,
+                    "regTime": round(time.time() * 1000),
                     "dir": direction,
                 }
                 body = json.dumps(data)
@@ -136,7 +136,7 @@ class ChannelTaskSet(locust.TaskSet):
                     exception=e
                 )
         else:
-            data = {"payloadType": 1, "regTime": time.time() * 1000}
+            data = {"payloadType": 1, "regTime": round(time.time() * 1000)}
             body = json.dumps(data)
             self.ws.send(body)
 
